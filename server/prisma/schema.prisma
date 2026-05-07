@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum SubmissionStatus {
+  PENDING
+  RUNNING
+  ACCEPTED
+  WRONG_ANSWER
+  TIME_LIMIT_EXCEEDED
+  MEMORY_LIMIT_EXCEEDED
+  COMPILE_ERROR
+  RUNTIME_ERROR
+  INTERNAL_ERROR
+}
+
+model User {
+  id          String       @id @default(uuid())
+  email       String       @unique
+  username    String       @unique
+  password    String
+  name        String?
+  role        Role         @default(USER)
+  submissions Submission[]
+  contests    Contest[]    @relation("ContestCreator")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Contest {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  creator     User      @relation("ContestCreator", fields: [creatorId], references: [id])
+  creatorId   String
+  problems    Problem[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Problem {
+  id          String       @id @default(uuid())
+  title       String
+  description String
+  difficulty  String
+  timeLimit   Int          @default(2000) // in ms
+  memoryLimit Int          @default(128)  // in MB
+  contest     Contest?     @relation(fields: [contestId], references: [id])
+  contestId   String?
+  testCases   TestCase[]
+  submissions Submission[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model TestCase {
+  id             String  @id @default(uuid())
+  input          String
+  expectedOutput String
+  isSample       Boolean @default(false)
+  problem        Problem @relation(fields: [problemId], references: [id])
+  problemId      String
+}
+
+model Submission {
+  id            String           @id @default(uuid())
+  code          String
+  language      String
+  status        SubmissionStatus @default(PENDING)
+  executionTime Int?             // in ms
+  memoryUsed    Int?             // in KB
+  errorMessage  String?
+  user          User             @relation(fields: [userId], references: [id])
+  userId        String
+  problem       Problem          @relation(fields: [problemId], references: [id])
+  problemId     String
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
